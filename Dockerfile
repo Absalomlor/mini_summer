@@ -9,8 +9,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# RUN python init_db.py
-
 EXPOSE 8000
 
 CMD ["fastapi", "dev", "main.py"]
