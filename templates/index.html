@@ -2,22 +2,198 @@
 <html>
 <head>
     <title>Todo App</title>
+    <link href="https://fonts.googleapis.com/css?family=Kanit:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', Arial, sans-serif;
+            background: linear-gradient(120deg, #f8fafc 0%, #e0e7ff 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 540px;
+            margin: 3em auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(60,72,100,0.10);
+            padding: 2.5em 2em 2em 2em;
+        }
+        h1 {
+            text-align: center;
+            color: #4f46e5;
+            margin-bottom: 1.5em;
+            letter-spacing: 1px;
+        }
+        form {
+            margin-bottom: 1.5em;
+        }
+        input[type="text"] {
+            padding: 0.7em 1em;
+            border: 1px solid #c7d2fe;
+            border-radius: 6px;
+            font-size: 1em;
+            width: 70%;
+            transition: border 0.2s;
+        }
+        input[type="text"]:focus {
+            border: 1.5px solid #6366f1;
+            outline: none;
+        }
+        button {
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.7em 1.2em;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        h2, h3 {
+            color: #6366f1;
+            margin-top: 2em;
+            margin-bottom: 0.7em;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #f1f5f9;
+            margin-bottom: 0.7em;
+            padding: 0.8em 1em;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(60,72,100,0.04);
+        }
+        .done {
+            text-decoration: line-through;
+            color: #a1a1aa;
+        }
+        form.inline {
+            display: inline;
+        }
+        .actions {
+            display: flex;
+            gap: 0.5em;
+        }
+        .pending-section {
+            margin-top: 2.5em;
+            background: #eef2ff;
+            border-radius: 10px;
+            padding: 1.2em 1em 1.5em 1em;
+            box-shadow: 0 1px 3px rgba(60,72,100,0.04);
+        }
+        #pending-list li {
+            background: #fff;
+            color: #6366f1;
+            border-left: 4px solid #6366f1;
+            margin-bottom: 0.5em;
+            padding: 0.5em 1em;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 1em 0.5em;
+            }
+            input[type="text"] {
+                width: 100%;
+                margin-bottom: 0.7em;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Simple Todo App</h1>
+    <div class="container">
+        <h1>Simple Todo App</h1>
 
-    <form action="/create-todo" method="post">
-        <input type="text" name="item" placeholder="Enter a new todo" required>
-        <button type="submit">Add</button>
-    </form>
+        <!-- Add Todo -->
+        <form action="/create-todo" method="post" autocomplete="off">
+            <input type="text" name="item" placeholder="Enter a new todo" required>
+            <button type="submit">Add</button>
+        </form>
 
-    <h2>Todo List:</h2>
-    <ul>
-        {% for todo in todos %}
-            <li>{{ todo }}</li>
-        {% else %}
-            <li>No todos yet!</li>
-        {% endfor %}
-    </ul>
+        <h2>Todo List</h2>
+        <ul>
+            {% for todo in todos %}
+                <li>
+                    <span class="{{ 'done' if todo.done else '' }}">
+                        {{ todo.task }}
+                    </span>
+                    <span class="actions">
+                        {% if not todo.done %}
+                            <!-- Mark as done and update -->
+                            <form class="inline" action="/update-todo/{{ todo.id }}" method="post" style="display:inline;">
+                                <input type="hidden" name="item" value="{{ todo.task }}">
+                                <button type="submit" title="Mark as Done">&#10003;</button>
+                            </form>
+                        {% endif %}
+                        <!-- Delete -->
+                        <form class="inline" action="/delete-todo/{{ todo.id }}" method="post" style="display:inline;">
+                            <input type="hidden" name="_method" value="delete">
+                            <button type="submit" title="Delete" onclick="return confirm('Delete this todo?')">&#128465;</button>
+                        </form>
+                    </span>
+                </li>
+            {% else %}
+                <li style="text-align:center; color:#a1a1aa;">No todos yet!</li>
+            {% endfor %}
+        </ul>
+
+        <div class="pending-section">
+            <h3>Pending Todos (API)</h3>
+            <button onclick="fetchPending()">Show Pending Todos</button>
+            <ul id="pending-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Handle delete with method override since HTML forms don't support DELETE
+        document.querySelectorAll('form[action^="/delete-todo/"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                fetch(form.action, { method: 'DELETE' })
+                    .then(() => window.location.reload());
+            });
+        });
+
+        // Handle update (mark as done) with method override since HTML forms don't support PUT
+        document.querySelectorAll('form[action^="/update-todo/"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const data = new FormData(form);
+                fetch(form.action, {
+                    method: 'PUT',
+                    body: data
+                }).then(() => window.location.reload());
+            });
+        });
+
+        // Fetch pending todos via API
+        function fetchPending() {
+            fetch('/todos/pending')
+                .then(res => res.json())
+                .then(data => {
+                    const ul = document.getElementById('pending-list');
+                    ul.innerHTML = '';
+                    if (data.pending_todos.length === 0) {
+                        ul.innerHTML = '<li>No pending todos!</li>';
+                    } else {
+                        data.pending_todos.forEach(todo => {
+                            const li = document.createElement('li');
+                            li.textContent = todo.task;
+                            ul.appendChild(li);
+                        });
+                    }
+                });
+        }
+    </script>
 </body>
 </html>
