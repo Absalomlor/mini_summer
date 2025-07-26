@@ -4,3 +4,5 @@ A mini Todo App where users can:
 - 🔁 Update existing todos
 - ❌ Delete completed or unwanted todos
 All backed by a FastAPI service and run using Docker Compose.
+
+It's so funn ahhh
