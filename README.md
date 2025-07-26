@@ -8,3 +8,5 @@ All backed by a FastAPI service and run using Docker Compose.
 It's so funn ahhh
 really
 101
+
+test push 
