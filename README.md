@@ -6,3 +6,4 @@ A mini Todo App where users can:
 All backed by a FastAPI service and run using Docker Compose.
 
 It's so funn ahhh
+really
